@@ -1,0 +1,20 @@
+pydub
+pygame
+tkinter
+numpy
+
+Descárgalo desde https://ffmpeg.org/download.html
+.
+
+Si no quieres complicarte, baja un build precompilado de gyan.dev:
+👉 https://www.gyan.dev/ffmpeg/builds/
+
+(elige la versión “release full”).
+
+Extrae el .zip.
+
+Copia la ruta de la carpeta bin (por ejemplo: C:\ffmpeg\bin).
+
+Agrega esa ruta a la variable de entorno PATH:
+
+Inicio → buscar “Editar las variables de entorno” → Variables de entorno → En Path → Nuevo → pega la ruta.
