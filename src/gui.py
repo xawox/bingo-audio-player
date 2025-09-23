@@ -6,7 +6,7 @@ from pydub import AudioSegment
 import tempfile
 import pygame
 
-def recortar_mas_potente(clip_path, duracion_ms=2000):
+def recortar_mas_potente(clip_path, duracion_ms=30000):
     audio = AudioSegment.from_file(clip_path)
     # Algoritmo simple: buscar la ventana de 30s con mayor RMS (energía)
     max_rms = -1
@@ -112,6 +112,12 @@ class AudioPlayerGUI:
         self.history_listbox.insert(END, "Historial de reproducción:")
         for idx, name in enumerate(self.played_clips, 1):
             self.history_listbox.insert(END, f"{idx}. {name}")
+        self.save_history_to_file()  # Guarda el historial en un archivo
+
+    def save_history_to_file(self):
+        with open("historial_reproducidas.txt", "w", encoding="utf-8") as f:
+            for idx, name in enumerate(self.played_clips, 1):
+                f.write(f"{idx}. {name}\n")
 
     def pause_clip(self):
         self.audio_player.pause()
