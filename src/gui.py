@@ -6,7 +6,7 @@ from pydub import AudioSegment
 import tempfile
 import pygame
 
-def recortar_mas_potente(clip_path, duracion_ms=30000):
+def recortar_mas_potente(clip_path, duracion_ms=2000):
     audio = AudioSegment.from_file(clip_path)
     # Algoritmo simple: buscar la ventana de 30s con mayor RMS (energía)
     max_rms = -1
@@ -149,19 +149,8 @@ class AudioPlayerGUI:
         self.play_clip()
 
     def play_next_clip(self):
-        count = self.clip_listbox.size()
-        if count == 0:
-            messagebox.showwarning("Warning", "No clips loaded.")
-            return
-        selected = self.clip_listbox.curselection()
-        if not selected:
-            next_index = 0
-        else:
-            next_index = (selected[0] + 1) % count
-        self.clip_listbox.selection_clear(0, END)
-        self.clip_listbox.selection_set(next_index)
-        self.clip_listbox.activate(next_index)
-        self.play_clip()
+        # Simplemente llama a play_random_clip para que sea aleatoria y no repetida
+        self.play_random_clip()
 
     def check_music_end(self):
         # Solo busca la siguiente si ya se ha empezado a reproducir alguna,
