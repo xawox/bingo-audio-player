@@ -1,4 +1,4 @@
-from tkinter import Tk, Frame, Button, Listbox, Scrollbar, END, messagebox, Label
+from tkinter import Tk, Frame, Button, Listbox, Scrollbar, END, messagebox, Label, filedialog
 import os
 import random
 from player import AudioPlayer
@@ -99,13 +99,18 @@ class AudioPlayerGUI:
         self.master.after(100, self.check_music_end)
 
     def load_clips(self):
-        self.clip_listbox.delete(0, END)
-        clips_folder = "clips"  # Adjust this path if necessary
-        if not os.path.exists(clips_folder):
-            messagebox.showerror("Error", "Clips folder does not exist.")
+        # Pregunta al usuario por la carpeta que contiene los clips
+        folder = filedialog.askdirectory(initialdir=os.getcwd(), title="Select clips folder")
+        if not folder:
+            return  # usuario canceló
+        if not os.path.isdir(folder):
+            messagebox.showerror("Error", "Selected folder is not valid.")
             return
 
-        for filename in os.listdir(clips_folder):
+        # Guarda la carpeta seleccionada para usarla en play_clip
+        self.clips_folder = folder
+        self.clip_listbox.delete(0, END)
+        for filename in os.listdir(self.clips_folder):
             if filename.lower().endswith(".mp3"):
                 self.clip_listbox.insert(END, filename)
 
@@ -115,7 +120,7 @@ class AudioPlayerGUI:
             messagebox.showwarning("Warning", "Please select a clip to play.")
             return
         clip_name = self.clip_listbox.get(selected)
-        clips_folder = "clips"
+        clips_folder = getattr(self, "clips_folder", "clips")
         clip_path = os.path.join(clips_folder, clip_name)
 
         # Recorta los 30 segundos más potentes
