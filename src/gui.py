@@ -48,7 +48,7 @@ class AudioPlayerGUI:
         self.history_frame.pack(fill="x", pady=10)
 
         # Caja de historial (izquierda)
-        self.history_listbox = Listbox(self.history_frame, width=50, height=8)
+        self.history_listbox = Listbox(self.history_frame, width=50, height=8, font=("Helvetica", 14))
         self.history_listbox.pack(side="left", fill="both", expand=True, padx=(0, 8))
 
         # Texto fijo grande a la derecha (SIEMPRE muestra "BINGO MUSICAL 2025")
