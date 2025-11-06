@@ -66,14 +66,20 @@ class AudioPlayerGUI:
         self.button_frame = Frame(self.master)
         self.button_frame.pack(pady=8)
 
+        # Entrada para duración en segundos y botón para aplicarla
+        from tkinter import Entry
+        self.trim_seconds_entry = Entry(self.button_frame, width=6)
+        self.trim_seconds_entry.insert(0, "30")  # valor por defecto en segundos
+        self.trim_seconds_entry.pack(side="left", padx=(6, 2))
+
+        self.set_trim_button = Button(self.button_frame, text="Set Duration (s)", command=self.apply_trim_duration)
+        self.set_trim_button.pack(side="left", padx=(0, 6))
+
         self.load_button = Button(self.button_frame, text="Load Clips", command=self.load_clips)
         self.load_button.pack(side="left", padx=6)
 
         self.play_button = Button(self.button_frame, text="Play", command=self.play_clip)
         self.play_button.pack(side="left", padx=6)
-
-        self.pause_button = Button(self.button_frame, text="Pause", command=self.pause_clip)
-        self.pause_button.pack(side="left", padx=6)
 
         self.stop_button = Button(self.button_frame, text="Stop", command=self.stop_clip)
         self.stop_button.pack(side="left", padx=6)
@@ -85,6 +91,8 @@ class AudioPlayerGUI:
         self.next_button.pack(side="left", padx=6)
 
         self.played_clips = []  # Lista para guardar el historial
+        # duración de recorte en milisegundos (por defecto 30s)
+        self.trim_duration_ms = 30 * 1000
 
         self.audio_player = AudioPlayer()
         self.started = False
@@ -123,8 +131,8 @@ class AudioPlayerGUI:
         clips_folder = getattr(self, "clips_folder", "clips")
         clip_path = os.path.join(clips_folder, clip_name)
 
-        # Recorta los 30 segundos más potentes
-        recorte = recortar_mas_potente(clip_path)
+        # Recorta según la duración actual (self.trim_duration_ms)
+        recorte = recortar_mas_potente(clip_path, duracion_ms=self.trim_duration_ms)
 
         # Guarda el recorte en un archivo temporal
         with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmpfile:
@@ -222,3 +230,51 @@ class AudioPlayerGUI:
             else:
                 self.play_random_clip()
         self.master.after(1000, self.check_music_end)
+
+    def apply_trim_duration(self):
+        """Leer el valor en segundos del Entry y actualizar self.trim_duration_ms."""
+        val = self.trim_seconds_entry.get().strip()
+        try:
+            secs = float(val)
+            if secs <= 0:
+                raise ValueError
+        except Exception:
+            messagebox.showerror("Error", "Introduce un número válido de segundos (> 0).")
+            return
+        self.trim_duration_ms = int(secs * 1000)
+        messagebox.showinfo("Ok", f"Duración de recorte fijada a {secs} segundos.")
+
+    def trim_all_clips(self):
+        """Recorta todos los mp3 de la carpeta seleccionada a self.trim_duration_ms.
+        No modifica canciones ya reproducidas; guarda resultados en carpeta 'trimmed'."""
+        clips_folder = getattr(self, "clips_folder", None)
+        if not clips_folder or not os.path.isdir(clips_folder):
+            messagebox.showwarning("Warning", "Selecciona primero la carpeta de clips (Load Clips).")
+            return
+
+        trimmed_folder = os.path.join(clips_folder, "trimmed")
+        os.makedirs(trimmed_folder, exist_ok=True)
+
+        filenames = [f for f in os.listdir(clips_folder) if f.lower().endswith(".mp3")]
+        if not filenames:
+            messagebox.showinfo("Info", "No hay archivos .mp3 en la carpeta seleccionada.")
+            return
+
+        skipped = []
+        processed = []
+        for name in filenames:
+            if name in self.played_clips:
+                skipped.append(name)
+                continue
+            src_path = os.path.join(clips_folder, name)
+            try:
+                clip = recortar_mas_potente(src_path, duracion_ms=self.trim_duration_ms)
+                dst_path = os.path.join(trimmed_folder, name)
+                clip.export(dst_path, format="mp3")
+                processed.append(name)
+            except Exception as e:
+                # continuar con los siguientes; opcionalmente podrías registrar errores
+                continue
+
+        msg = f"Recortadas: {len(processed)}. Omitidas (reproducidas): {len(skipped)}."
+        messagebox.showinfo("Trim done", msg)
