@@ -1,4 +1,4 @@
-from tkinter import Tk, Frame, Button, Listbox, Scrollbar, END, messagebox
+from tkinter import Tk, Frame, Button, Listbox, Scrollbar, END, messagebox, Label
 import os
 import random
 from player import AudioPlayer
@@ -38,34 +38,64 @@ class AudioPlayerGUI:
         self.clip_listbox.config(yscrollcommand=self.scrollbar.set)
         self.scrollbar.config(command=self.clip_listbox.yview)
 
-        self.load_button = Button(self.master, text="Load Clips", command=self.load_clips)
-        self.load_button.pack(pady=5)
+        # Oculta la lista de canciones cargadas y su scrollbar.
+        # Si quieres mostrarla luego, usa: self.clip_listbox.pack(...) y self.scrollbar.pack(...)
+        self.clip_listbox.pack_forget()
+        self.scrollbar.pack_forget()
 
-        self.play_button = Button(self.master, text="Play", command=self.play_clip)
-        self.play_button.pack(pady=5)
+        # Contenedor para historial + texto fijo a la derecha
+        self.history_frame = Frame(self.master)
+        self.history_frame.pack(fill="x", pady=10)
 
-        self.pause_button = Button(self.master, text="Pause", command=self.pause_clip)
-        self.pause_button.pack(pady=5)
+        # Caja de historial (izquierda)
+        self.history_listbox = Listbox(self.history_frame, width=50, height=8)
+        self.history_listbox.pack(side="left", fill="both", expand=True, padx=(0, 8))
 
-        self.stop_button = Button(self.master, text="Stop", command=self.stop_clip)
-        self.stop_button.pack(pady=5)
+        # Texto fijo grande a la derecha (SIEMPRE muestra "BINGO MUSICAL 2025")
+        self.brand_label = Label(
+            self.history_frame,
+            text="BINGO MUSICAL 2025",
+            font=("Helvetica", 24, "bold"),
+            width=24,
+            anchor="center"
+        )
+        self.brand_label.pack(side="right", fill="y")
+        self.history_listbox.insert(END, "Historial de reproducción:")
 
-        self.random_button = Button(self.master, text="Play Random", command=self.play_random_clip)
-        self.random_button.pack(pady=5)
+        # Botones en una sola fila (debajo del historial)
+        self.button_frame = Frame(self.master)
+        self.button_frame.pack(pady=8)
 
-        self.next_button = Button(self.master, text="Next", command=self.play_next_clip)
-        self.next_button.pack(pady=5)
+        self.load_button = Button(self.button_frame, text="Load Clips", command=self.load_clips)
+        self.load_button.pack(side="left", padx=6)
+
+        self.play_button = Button(self.button_frame, text="Play", command=self.play_clip)
+        self.play_button.pack(side="left", padx=6)
+
+        self.pause_button = Button(self.button_frame, text="Pause", command=self.pause_clip)
+        self.pause_button.pack(side="left", padx=6)
+
+        self.stop_button = Button(self.button_frame, text="Stop", command=self.stop_clip)
+        self.stop_button.pack(side="left", padx=6)
+
+        self.random_button = Button(self.button_frame, text="Play Random", command=self.play_random_clip)
+        self.random_button.pack(side="left", padx=6)
+
+        self.next_button = Button(self.button_frame, text="Next", command=self.play_next_clip)
+        self.next_button.pack(side="left", padx=6)
 
         self.played_clips = []  # Lista para guardar el historial
-
-        # Caja de historial más grande
-        self.history_listbox = Listbox(self.master, width=70, height=8)
-        self.history_listbox.pack(pady=10)
-        self.history_listbox.insert(END, "Historial de reproducción:")
 
         self.audio_player = AudioPlayer()
         self.started = False
         self.just_resumed = False
+        self.current_clip = None  # <- guarda el nombre de la pista actual
+
+        # Label grande fijo debajo de los botones para mostrar la canción que está sonando
+        self.now_playing_large = Label(self.master, text="No hay reproducción", font=("Helvetica", 30, "bold"), anchor="center")
+        # empaquetar aquí (después de los botones) para que quede justo debajo de ellos
+        self.now_playing_large.pack(fill="x", pady=(10, 20))
+
         self.master.after(100, self.check_music_end)
 
     def load_clips(self):
@@ -100,10 +130,15 @@ class AudioPlayerGUI:
         self.audio_player.load(tmpfile_path)
         self.audio_player.play()
         self.started = True
-        self.just_resumed = False  # Es una reproducción nueva
 
-        # Añade al historial solo si no es una reanudación
-        if not self.just_resumed and (not self.played_clips or self.played_clips[-1] != clip_name):
+        # marcar y mostrar la pista actual SOLO en el label inferior
+        was_resumed = self.just_resumed
+        self.just_resumed = False
+        self.current_clip = clip_name
+        self.now_playing_large.config(text=clip_name)
+
+        # Añade al historial solo si no es reanudación y no es repetición inmediata
+        if not was_resumed and (not self.played_clips or self.played_clips[-1] != clip_name):
             self.played_clips.append(clip_name)
             self.update_history_listbox()
 
@@ -121,11 +156,17 @@ class AudioPlayerGUI:
 
     def pause_clip(self):
         self.audio_player.pause()
-        self.just_resumed = True  # Marca que la próxima vez puede ser reanudación
+        self.just_resumed = True
+        if self.current_clip:
+            # Sólo actualiza el label grande inferior
+            self.now_playing_large.config(text=f"PAUSA — {self.current_clip}")
 
     def stop_clip(self):
         self.audio_player.stop()
-        self.just_resumed = True  # Marca que la próxima vez puede ser reanudación
+        self.just_resumed = True
+        self.current_clip = None
+        # Sólo actualiza el label grande inferior
+        self.now_playing_large.config(text="Detenido")
 
     def play_random_clip(self):
         count = self.clip_listbox.size()
